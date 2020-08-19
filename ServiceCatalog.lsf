@@ -1,0 +1,115 @@
+MODULE ServiceCatalog;
+
+REQUIRE Customer;
+
+NAMESPACE ServiceCatalog;
+
+CLASS Software 'Программное обеспечение';
+id 'Код' = DATA STRING[5] (Software) IN base;
+name 'Наименование'= DATA STRING (Software) IN base;
+parent 'Родитель' = DATA Software (Software);
+nameParent 'Родитель' (Software s) = name(parent(s)) IN base;
+description 'Описание' = DATA TEXTFILE (Software) IN base;
+level 'Уровень' (Software child, Software parent) = RECURSION 1l IF child IS Software AND parent == child STEP 2l IF parent == parent($parent) MATERIALIZED;
+                                                                 
+CLASS LicenseType 'Типы лицензий'{
+    module 'Функциональный модуль',
+    pos 'Торговый объект',
+    warehouse 'Оптовый склад',
+    user 'Конкурентный пользователь',
+    hardware 'Оборудование',
+    production 'Заготовочный цех (СП)'
+}
+
+CLASS License 'Лицензии';
+type = DATA LicenseType(License);
+typeName 'Тип' (License l) = staticCaption(type(l)) IN base;
+software = DATA Software(License);
+softwareName 'Программа' (License l)= name(software(l)) IN base;
+id 'Код' (License l)= id(software(l));
+binding 'Обязательный' = DATA BOOLEAN (License) IN base;
+nameLic 'Наименование' (License l) = DATA STRING (License) IN base;
+name 'Наименование' (License l)= CONCAT '_', nameLic(l), softwareName(l);
+description 'Описание' (License l) = DATA TEXTFILE (License) IN base;
+price 'Цена' = DATA INTEGER (License) IN base;
+
+CLASS BillingCircle 'Биллинговый цикл'{
+    monthly 'Ежемесячно',
+    quaterly 'Ежеквартально',
+    halfyearly 'Раз в полгода',
+    yearly 'Ежегодно',
+    once 'Единоразово'
+}
+
+CLASS Services 'Услуги';
+id 'Код' = DATA STRING (Services) IN base;
+name 'Наименование' = DATA STRING (Services) IN base;
+parent = DATA Services (Services);
+nameParent 'Родитель' (Services s) = name(parent(s)) IN base;
+rate'Часовя ставка' = DATA INTEGER (Services) IN base;
+limit 'Лимит' = DATA INTEGER (Services) IN base;
+percent 'Процент от проекта'= DATA INTEGER (Services) IN base;
+billingCircle = DATA BillingCircle(Services) IN base;
+billingCircleName 'Биллинговый цикл' (Services serv) = staticCaption(billingCircle(serv)) IN base;
+software = DATA Software(Services);
+softwareName 'Программа' (Services serv) = name(software(serv)) IN base;
+description 'Описание' = DATA TEXTFILE (Services) IN base;
+level 'Уровень' (Services child, Services parent) = RECURSION 1l IF child IS Services AND parent == child STEP 2l IF parent == parent($parent) MATERIALIZED ;
+
+FORM license 'Лицензии'
+    OBJECTS l = License
+    PROPERTIES (l) id, binding, typeName, softwareName, nameLic, name, price, description, NEW, EDIT, DELETE
+    EDIT License OBJECT l
+;
+
+FORM softwareEdit 'Программы'
+    OBJECTS s = Software
+    PROPERTIES (s) id, name, nameParent, description, NEW, EDIT, DELETE
+    EDIT Software OBJECT s
+;
+
+FORM software 'Программы'
+    
+    TREE software s = Software PARENT parent(s)
+    PROPERTIES(s) id, name, nameParent, NEW, EDIT, DELETE
+    
+    OBJECTS l = License
+    PROPERTIES(l) id, binding, typeName, name, price, NEWEDIT NEWSESSION, EDIT, DELETE
+    FILTERGROUP byLevel
+     FILTER 'По модулю' level(software(l), s) DEFAULT
+;
+
+DESIGN software {
+    NEW header FIRST {
+            fill = 1;
+            type = SPLITH ;
+            MOVE BOX(TREE software){
+                fill = 1;
+            };
+            MOVE BOX(l){
+                fill = 2;
+            };
+        }
+}
+
+FORM serviceEdit 'Услуги'
+    TREE services serv = Services PARENT parent(serv)
+    PROPERTIES (serv) id, name, nameParent, description, NEW, EDIT, DELETE
+    EDIT Services OBJECT serv
+;
+
+FORM services 'Услуги'
+     OBJECTS s = Services
+     PROPERTIES (s) id,  name, limit, rate, percent, billingCircle, nameParent, softwareName, description, NEW, EDIT, DELETE     
+;
+
+NAVIGATOR {
+    masterData {
+    NEW FOLDER serviceCatalog 'Сервисный каталог'{
+        NEW software;
+        NEW services;
+        }
+    
+    }
+}
+
