@@ -25,7 +25,6 @@ typeName 'Тип' (License l) = name(type(l)) IN base;
 software = DATA Software(License);
 softwareName 'Программа' (License l)= name(software(l)) IN base;
 id 'Код' (License l)= id(software(l));
-licenseID = GROUP AGGR License l BY id(l);
 binding 'Обязательная' = DATA BOOLEAN (License) IN base;
 nameLic 'Наименование лицензии' = DATA STRING (License) IN base;
 name 'Наименование' (License l)= CONCAT '_', nameLic(l), softwareName(l);
