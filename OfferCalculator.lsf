@@ -1,0 +1,16 @@
+MODULE OfferCalculator;
+
+REQUIRE MasterData, LegalEntity, ServiceCatalog, Customer, Contact;
+
+NAMESPACE OfferCalculator;
+
+FORM offerCalculator 'Калькулятор КП'
+    OBJECTS c = Customer
+    PROPERTIES (c) name NEWSESSION , NEWEDIT, EDIT, DELETE 
+;
+
+NAVIGATOR {
+    serviceCatalog{
+        NEW offerCalculator;
+    }
+}
