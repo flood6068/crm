@@ -1,0 +1,229 @@
+MODULE ServiceCatalogImport;
+
+REQUIRE ServiceCatalog;
+
+NAMESPACE ServiceCatalog;
+
+softwareExport 'Экспорт программ' () {
+    NEWSESSION {
+        LOCAL f = CSVFILE  ();
+        EXPORT CSV HEADER FROM 'Код' = id(Software s), 'Наименование' = name(s), 'Код родителя' = id(parent(s)),
+                                 'Описание' = description(s) TO f;
+        WRITE CLIENT DIALOG f() TO 'Программы';
+    }
+}
+
+softwareImport 'Импорт программ' () {
+    LOCAL id = STRING[5] (INTEGER );
+    LOCAL name = ISTRING[50] (INTEGER);
+    LOCAL parent = STRING (INTEGER);
+    LOCAL description = RICHTEXT (INTEGER);
+
+    INPUT f = CSVFILE  DO {
+        NEWSESSION {
+            IMPORT CSV FROM f TO id = A, name = B, parent = C, description = D;
+            FOR imported(INTEGER i) AND i > 0 NEW im = Software DO {
+                    id(im) <- id(i);
+                    name(im) <- name(i);
+                    description(im) <- description(i);
+            }
+            FOR imported(INTEGER i) AND i > 0 AND softwareID(id(i)) = Software s DO {
+                parent(s) <- softwareID(parent(i));
+            }
+            APPLY;
+            MESSAGE 'Импорт завершен';
+        }
+    }    
+}
+
+licenseTypeExport 'Экспорт типов лицензий' () {
+    NEWSESSION {
+        LOCAL f = CSVFILE ();
+        EXPORT CSV HEADER FROM 'Наименование типа лицензии' = name(LicenseType lt) TO f;
+        WRITE CLIENT DIALOG f() TO 'Типы лицензий';
+    }
+}
+
+licenseTypeImport 'Импорт типов лицензий' () {
+    LOCAL name = STRING (INTEGER);
+    INPUT f = CSVFILE DO {
+        NEWSESSION {
+            IMPORT CSV FROM f TO name = A;
+            FOR imported(INTEGER i) AND i > 0 NEW im = LicenseType DO{
+                name(im) <- name(i);
+            }
+            APPLY ;
+            MESSAGE 'Импорт завершен';
+        }
+    }
+}
+
+licenseExport 'Экспорт лицензий' () {
+    NEWSESSION {
+        LOCAL f = CSVFILE ();
+        EXPORT CSV HEADER FROM 'Наименование лицензии' = nameLic(License l), 'Тип' = typeName(l), 
+                                'Программа' = softwareName(l), 'Обязательная' = binding(l),
+                                'Цена' = price(l),'Описание' = description(l) TO f;
+        WRITE CLIENT DIALOG f() TO 'Лицензии';
+    }
+}
+
+
+licenseImport 'Импорт лицензий' () {
+        
+    INPUT f = CSVFILE DO {
+        LOCAL nameLic = STRING (INTEGER);
+        LOCAL typeName = STRING (INTEGER);
+        LOCAL softwareName = STRING (INTEGER );
+        LOCAL binding = BOOLEAN (INTEGER );
+        LOCAL price = INTEGER (INTEGER );
+        LOCAL description = RICHTEXT (INTEGER);
+    
+        NEWSESSION {
+            IMPORT CSV FROM f TO nameLic = A, typeName = B, softwareName = C, binding = D, price=E, description = F;
+            FOR imported(INTEGER i) AND i > 0 NEW im = License DO {
+                nameLic(im) <- nameLic(i);
+                type(im) <- licenseType(typeName(i));
+                software(im) <- softwareName(softwareName(i));
+                binding(im) <- binding(i);
+                price(im) <- price(i);
+                description(im) <- description(i);
+            }
+            APPLY;
+            MESSAGE 'Импорт завершен';
+        }
+    }    
+}
+
+serviceTypeExport 'Экспорт типов услуг' (){
+    NEWSESSION {
+        LOCAL f = CSVFILE ();
+        EXPORT CSV HEADER FROM 'Наименование типа услуг' = name(ServiceType st) TO f;
+        WRITE CLIENT DIALOG f() TO 'Типы_услуг';
+    }
+}
+
+serviceTypeImport 'Импорт типов услуг' (){
+    INPUT f = CSVFILE DO{
+        LOCAL name = STRING (INTEGER);
+        
+        NEWSESSION {
+            IMPORT CSV FROM f TO name = A;
+            FOR imported(INTEGER i) AND i > 0 NEW im = ServiceType DO{
+                name(im) <- name(i);
+            }
+            APPLY ;
+            MESSAGE 'Импорт завершен';
+        }
+    }
+}
+
+billingCircleExport 'Экспорт биллинговых циклов' (){
+    NEWSESSION {
+        LOCAL f = CSVFILE ();
+        EXPORT CSV HEADER FROM 'Наименование биллингового цикла' = name(BillingCircle bc) TO f;
+        WRITE CLIENT DIALOG f() TO 'Биллинговые_циклы';
+    }
+}
+
+billingCircleImport 'Импорт биллинговых циклов' (){
+    INPUT f = CSVFILE DO{
+        LOCAL name = STRING (INTEGER);
+        
+        NEWSESSION {
+            IMPORT CSV FROM f TO name = A;
+            FOR imported(INTEGER i) AND i > 0 NEW im = BillingCircle DO{
+                name(im) <- name(i);
+            }
+            APPLY ;
+            MESSAGE 'Импорт завершен';
+        }
+    }
+}
+
+servicesExport 'Экспорт услуг' (){
+    NEWSESSION {
+        LOCAL f = CSVFILE ();
+        EXPORT CSV HEADER FROM 'Код' = id(Services serv), 'Наименование' = name(serv), 'Тип услуги' = typeName(serv), 'Ставка' = rate(serv), 'Биллинговый цикл' = billingCircleName(serv), 'Программа' = softwareName(serv), 'Описание' = description(serv) TO f;
+        WRITE CLIENT DIALOG f() TO 'Услуги';
+    }
+}
+
+servicesImport 'Импорт услуг' (){
+    INPUT f = CSVFILE DO {
+        LOCAL id = STRING (INTEGER );
+        LOCAL name = STRING (INTEGER );
+        LOCAL typeName = STRING (INTEGER );
+        LOCAL rate = INTEGER (INTEGER );
+        LOCAL billingCircleName = STRING (INTEGER );
+        LOCAL softwareName = STRING (INTEGER );
+        LOCAL description = RICHTEXT (INTEGER );
+        NEWSESSION {
+            IMPORT CSV FROM f TO id = A, name = B, typeName = C, rate = D, billingCircleName = E, softwareName = F, description = J;
+            FOR imported(INTEGER i) AND i > 0 NEW im = Services DO {
+                id(im) <- id(i);
+                name(im) <- name(i);
+                type(im) <- serviceType(typeName(i));
+                rate(im) <- rate(i);
+                billingCircle(im) <- billingCircle(billingCircleName(i));
+                software(im) <- softwareName(softwareName(i));
+                description(im) <- description(i);
+            }
+            APPLY ;
+            MESSAGE 'Импорт завершен';
+        }
+    }
+}
+
+FORM migrationServiceCatalog 'Перенос сервисного каталога'
+    PROPERTIES softwareExport(), softwareImport(), licenseTypeExport(), licenseTypeImport(), 
+        licenseExport(), licenseImport(), serviceTypeExport(), serviceTypeImport(), 
+        billingCircleExport(), billingCircleImport(), servicesExport(), servicesImport()
+;
+
+DESIGN migrationServiceCatalog {
+    NEW software {
+        type = CONTAINERH;
+        caption = 'Програмы';
+        MOVE PROPERTY(softwareImport());
+        MOVE PROPERTY(softwareExport());
+    }
+    NEW licenseType {
+        type = CONTAINERH;
+        caption = 'Типы лицензий';
+        MOVE PROPERTY (licenseTypeImport());
+        MOVE PROPERTY (licenseTypeExport());
+    }
+    NEW license {
+        type = CONTAINERH;
+        caption = 'Лицензии';
+        MOVE PROPERTY (licenseImport());
+        MOVE PROPERTY (licenseExport());
+    }
+    NEW serviceType{
+        type = CONTAINERH;
+        caption = 'Типы услуг';
+        MOVE PROPERTY (serviceTypeImport());
+        MOVE PROPERTY (serviceTypeExport());
+    }
+    
+    NEW billingCircle{
+        type = CONTAINERH;
+        caption = 'Биллинговые циклы';
+        MOVE PROPERTY (billingCircleImport());
+        MOVE PROPERTY (billingCircleExport());
+    }
+        
+    NEW services {
+        type = CONTAINERH;
+        caption = 'Услуги';
+        MOVE PROPERTY (servicesImport());
+        MOVE PROPERTY (servicesExport());
+    }
+}
+
+NAVIGATOR {
+    serviceCatalog{
+        NEW migrationServiceCatalog;
+    }
+}
