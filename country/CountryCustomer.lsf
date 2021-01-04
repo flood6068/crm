@@ -1,62 +1,18 @@
 MODULE CountryCustomer;
 
-REQUIRE Customer, CountryP;
+REQUIRE Customer, CountryP, CustomerDashboard;
 
 NAMESPACE Country;
 
 countryCustomer 'Страна клиента' = DATA Country(Customer);
 countryCustomerName 'Страна клиента' (Customer c) = name(countryCustomer(c)) IN base;
-countryCustumer = GROUP AGGR Country c BY name(c);
 
 EXTEND FORM customer
     PROPERTIES (o) countryCustomerName
 ;
 
 DESIGN customer {
-    OBJECTS {
-        NEW main FIRST {
-            type = CONTAINERH;
-            caption = 'Основные параметры';
-            MOVE PROPERTY (id(o));
-            MOVE PROPERTY (name(o)) { charWidth = 50; }
-        }
-        NEW contacts AFTER main {
-            type = CONTAINERH;
-            caption = 'Контакты';
-            MOVE PROPERTY (phone(o));
-            MOVE PROPERTY (email(o)) { charWidth = 30; }
-        }
-        NEW add AFTER contacts {
-            caption = 'Дополнительные параметры';
-            NEW firstAdd {
-                type = COLUMNS;
-                columns = 3;
-                MOVE PROPERTY (nameGroup(o));
-                MOVE PROPERTY (nameStatus(o));
-                MOVE PROPERTY (dateFrom(o));
-                MOVE PROPERTY (site(o));
-                MOVE PROPERTY (note(o));
-                MOVE PROPERTY (countryCustomerName(o));
-            }
-//            NEW secondAdd {
-//                type = CONTAINERH;
-//                MOVE PROPERTY (inactive(o));
-//                MOVE PROPERTY (forbidTimeEntries(o));
-//            }
-//        }
-//        NEW tab {
-//            type = TABBED;
-//            fill = 1;
-//            MOVE BOX (le) { caption = 'Организации'; }
-//            MOVE BOX (a) { caption = 'Адреса'; }
-//            MOVE BOX (c) { caption = 'Контакты'; }
-//            MOVE BOX (t) { caption = 'Тэги'; }
-//            MOVE BOX (e) { caption = 'Сотрудники'; }
-//            NEW info {
-//                caption = 'Информация';
-//                fill = 1;
-//                MOVE PROPERTY (info(o)) { caption = ''; fill = 1; }
-//            }
-        }
+    add {
+        MOVE PROPERTY (countryCustomerName(o));
     }
 }
