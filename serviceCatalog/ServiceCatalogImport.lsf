@@ -63,7 +63,8 @@ licenseExport 'Экспорт лицензий' () {
         LOCAL f = CSVFILE ();
         EXPORT CSV HEADER FROM 'Наименование лицензии' = nameLic(License l), 'Тип' = typeName(l), 
                                 'Программа' = softwareName(l), 'Обязательная' = binding(l),
-                                'Цена' = price(l),'Описание' = description(l) TO f;
+                                'Цена' = price(l),'Описание' = description(l)
+                                 TO f;
         WRITE CLIENT DIALOG f() TO 'Лицензии';
     }
 }

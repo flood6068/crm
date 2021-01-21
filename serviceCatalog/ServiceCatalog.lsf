@@ -1,6 +1,6 @@
 MODULE ServiceCatalog;
 
-REQUIRE MasterData;
+REQUIRE MasterData, Currency;
 
 NAMESPACE ServiceCatalog;
 
@@ -30,7 +30,7 @@ nameLic 'Наименование лицензии' = DATA STRING (License) IN b
 nameLicUniq = GROUP AGGR License l BY nameLic(l);
 name 'Наименование' (License l)= CONCAT '_', nameLic(l), softwareName(l);
 description 'Описание' = DATA RICHTEXT (License) IN base;
-price 'Цена' = DATA INTEGER (License) IN base;
+price 'Базовая цена USD' = DATA INTEGER (License) IN base;
 
 CLASS BillingCircle 'Биллинговый цикл';
 name 'Наименование биллинговог цикла' = DATA STRING (BillingCircle) IN base;
@@ -72,8 +72,14 @@ FORM billingCircle 'Биллинговый цикл'
 
 FORM license 'Лицензии'
     OBJECTS l = License
-    PROPERTIES (l) id, binding, typeName, softwareName, nameLic, name, price, description, NEW, EDIT, DELETE
+    PROPERTIES (l) id, binding, typeName, softwareName, nameLic, name, price, description, NEW, DELETE
     EDIT License OBJECT l
+;
+
+FORM licenseList 'Лицензии'
+    OBJECTS l = License
+    PROPERTIES (l) typeName, softwareName, nameLic, price
+    LIST License OBJECT l
 ;
 
 FORM softwareEdit 'Программы'
@@ -89,6 +95,7 @@ FORM softwareAndServices'Программы и услуги'
     
     OBJECTS l = License
     PROPERTIES(l) id, binding, typeName, name, price, description, NEWEDIT NEWSESSION, EDIT, DELETE 
+    
     OBJECTS serv = Services
     PROPERTIES (serv) id, name, typeName, rate, billingCircleName, softwareName, description NEWSESSION, NEWEDIT, EDIT, DELETE    
     FILTERGROUP byLevelSoftware

@@ -1,0 +1,77 @@
+MODULE CustomerServices;
+
+REQUIRE Customer, ServiceCatalog, CustomerDashboard, Currency;
+
+NAMESPACE ServiceCatalog;
+
+CLASS LicenseLedger;
+
+license 'Лицензия' = DATA License(LicenseLedger);
+licenseName 'Лицензия' (LicenseLedger ll) = name(license(ll));
+licensePrice 'Базовая цена' (LicenseLedger ll) = price(license(ll));
+quantity 'Количесвто' = DATA INTEGER (LicenseLedger);
+baseCost 'Базовоя стоимость' (LicenseLedger ll) = quantity(ll) * licensePrice(ll);
+dataCost (LicenseLedger ll) = DATA NUMERIC[16,5] (LicenseLedger);
+cost 'Стоимость USD' (LicenseLedger ll) = OVERRIDE dataCost(ll), baseCost(ll);
+act 'Акт' = DATA Act(LicenseLedger);
+customer 'Клиент' (LicenseLedger ll) = customer(act(ll));
+customerName 'Клиент' (LicenseLedger ll) = name(customer(ll));
+
+actCurrency 'Валюта акта' = DATA Currency(Act);
+actCurrencyName 'Валюта акта' (Act a) = shortName(actCurrency(a));
+actCurrency(Act a) <- defaultCurrency() WHEN SET(a IS Act);
+
+actLicenseSum 'Сумма лицензий по акту USD' = GROUP SUM cost(LicenseLedger l) BY act(l);
+actLicenseSumBYN 'Сумма лицензий по атку BYN'(Act a) = round2(actLicenseSum(a) / OVERRIDE rateOn(defaultTypeExchange(), actCurrency(a), date(a)), 1);
+
+WHEN LOCAL CHANGED (actLicenseSumBYN(Act a)) OR  DROPPED (sum(a)) AND NOT sum(a) DO {
+sum(a) <- actLicenseSumBYN(a);} 
+
+FORM licenseEdit 'Добавление лицензий в акт'
+    OBJECTS l = LicenseLedger PANEL
+    PROPERTIES (l)  licenseName, quantity, baseCost, cost
+    EDIT LicenseLedger OBJECT l
+;
+
+newLicense 'Добавить лицензию' (Act a) {
+NESTEDSESSION {
+        NEW aa = LicenseLedger {
+          act(aa) <- a;
+            SHOW licenseEdit OBJECTS l = aa;  
+        }
+    }  
+} IMAGE 'add.png'  CHANGEKEY 'INSERT' HIDE;
+
+EXTEND FORM customer
+    OBJECTS licled = LicenseLedger
+    PROPERTIES (licled) customerName, act, licenseName, quantity, baseCost, cost, EDIT, DELETE
+    FILTERS customer(licled) == o
+    
+    OBJECTS serv = Services
+    PROPERTIES (serv) name
+;
+
+EXTEND FORM act
+    OBJECTS licl = LicenseLedger
+    PROPERTIES (licl) licenseName, quantity, cost, DELETE 
+    PROPERTIES (o) actCurrencyName, actLicenseSum, actLicenseSumBYN, newLicense
+    FILTERS act(licl) = o
+;
+DESIGN act{
+    add{
+        MOVE PROPERTY (actCurrencyName(o));
+        MOVE PROPERTY (actLicenseSum(o));
+        MOVE PROPERTY (actLicenseSumBYN(o));
+    }
+    tab{
+        MOVE BOX (licl){caption = 'Лицензии';}
+        TOOLBARRIGHT(licl) { MOVE PROPERTY (newLicense(o));}
+    }
+}
+
+DESIGN customer{
+    tab{
+        MOVE BOX (licled) { caption ='Лицензии';}
+        MOVE BOX (serv) { caption = 'Услуги';}
+    }
+}
