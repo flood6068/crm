@@ -14,7 +14,10 @@ baseCost 'Базовоя стоимость' (LicenseLedger ll) = quantity(ll) *
 dataCost (LicenseLedger ll) = DATA NUMERIC[16,5] (LicenseLedger);
 cost 'Стоимость USD' (LicenseLedger ll) = OVERRIDE dataCost(ll), baseCost(ll);
 act 'Акт' = DATA Act(LicenseLedger);
-customer 'Клиент' (LicenseLedger ll) = customer(act(ll));
+actDescription 'Акт' (LicenseLedger ll) = description(act(ll));
+
+dataCustomer 'Клиент' = DATA Customer(LicenseLedger);
+customer 'Клиент' (LicenseLedger ll) = OVERRIDE dataCustomer(ll), customer(act(ll));
 customerName 'Клиент' (LicenseLedger ll) = name(customer(ll));
 
 actCurrency 'Валюта акта' = DATA Currency(Act);
@@ -27,13 +30,21 @@ actLicenseSumBYN 'Сумма лицензий по атку BYN'(Act a) = round2
 WHEN LOCAL CHANGED (actLicenseSumBYN(Act a)) OR  DROPPED (sum(a)) AND NOT sum(a) DO {
 sum(a) <- actLicenseSumBYN(a);} 
 
+
+customerCurrency 'Валюта клиента' = DATA Currency(Customer);
+customerCurrencyName 'Валюта клиента' (Customer c) = shortName(customerCurrency(c));
+//IF NOT customerCurrency(Customer c) <- defaultCurrency(); ???
+customerCurrency(Customer c) <- defaultCurrency() WHEN DROPPED (c IS Customer);
+customerLicenseSum 'Сумма лицензий по клиенту USD' = GROUP SUM cost(LicenseLedger l) BY customer(l);
+customerLicenseSumBYN 'Сумма лицензий по клиенту BYN' (Customer c) = round2(customerLicenseSum(c) / OVERRIDE rateOn(defaultTypeExchange(), customerCurrency(c), currentDate()), 1);
+
 FORM licenseEdit 'Добавление лицензий в акт'
     OBJECTS l = LicenseLedger PANEL
-    PROPERTIES (l)  licenseName, quantity, baseCost, cost
+    PROPERTIES (l) licenseName, baseCost, quantity, cost
     EDIT LicenseLedger OBJECT l
 ;
 
-newLicense 'Добавить лицензию' (Act a) {
+newLicenseAct 'Добавить лицензию' (Act a) {
 NESTEDSESSION {
         NEW aa = LicenseLedger {
           act(aa) <- a;
@@ -44,34 +55,44 @@ NESTEDSESSION {
 
 EXTEND FORM customer
     OBJECTS licled = LicenseLedger
-    PROPERTIES (licled) customerName, act, licenseName, quantity, baseCost, cost, EDIT, DELETE
-    FILTERS customer(licled) == o
+    PROPERTIES (licled) READONLY customerName, actDescription, licenseName, quantity, baseCost, cost
+    PROPERTIES (o) customerLicenseSum, customerCurrencyName, customerLicenseSumBYN
+    FILTERS customer(licled) = o
     
     OBJECTS serv = Services
     PROPERTIES (serv) name
 ;
 
 EXTEND FORM act
-    OBJECTS licl = LicenseLedger
+    OBJECTS licl = LicenseLedger, serv = Services
     PROPERTIES (licl) licenseName, quantity, cost, DELETE 
-    PROPERTIES (o) actCurrencyName, actLicenseSum, actLicenseSumBYN, newLicense
+    PROPERTIES (o) actCurrencyName, actLicenseSum, actLicenseSumBYN, newLicenseAct
+    PROPERTIES (serv) name
     FILTERS act(licl) = o
 ;
 DESIGN act{
     add{
         MOVE PROPERTY (actCurrencyName(o));
-        MOVE PROPERTY (actLicenseSum(o));
-        MOVE PROPERTY (actLicenseSumBYN(o));
     }
     tab{
-        MOVE BOX (licl){caption = 'Лицензии';}
-        TOOLBARRIGHT(licl) { MOVE PROPERTY (newLicense(o));}
+        MOVE BOX (licl){caption = 'Лицензии';
+            MOVE PROPERTY (actLicenseSum(o));
+            MOVE PROPERTY (actLicenseSumBYN(o));
+        }
+        TOOLBARRIGHT(licl) { MOVE PROPERTY (newLicenseAct(o));}
+        MOVE BOX (serv){ caption = 'Услуги';}
     }
 }
 
 DESIGN customer{
+    add{
+        MOVE PROPERTY (customerCurrencyName(o));
+    }
     tab{
-        MOVE BOX (licled) { caption ='Лицензии';}
+        MOVE BOX (licled) { caption ='Лицензии';
+            MOVE PROPERTY (customerLicenseSum(o));
+            MOVE PROPERTY (customerLicenseSumBYN(o));
+        }
         MOVE BOX (serv) { caption = 'Услуги';}
     }
 }

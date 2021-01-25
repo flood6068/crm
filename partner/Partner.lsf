@@ -1,0 +1,33 @@
+MODULE Partner;
+
+REQUIRE MasterData, ServiceCatalog, Customer, CountryP, LegalEntity;
+
+NAMESPACE ServiceCatalog;
+
+CLASS PartnerType 'Тип партнера';
+name 'Наименование' =  DATA STRING (PartnerType) IN base;
+
+CLASS Partner 'Партнер';
+isParner 'Является партнером' = DATA BOOLEAN (Customer) IN base;
+// partner 'Партнер' (Customer c) = DATA  ;
+id 'Код' = DATA STRING (Partner) IN base;
+type 'Тип' = DATA PartnerType(Partner) IN base;
+typeName 'Тип' (Partner p) = name(type(p)) IN base;
+country = DATA Country(Partner) IN base;
+countryName 'Страна' (Partner p) = name(country(p)) IN base;
+customer = DATA Customer(Partner) IN base;
+customerName 'Клиент' (Partner p) = name(customer(p));
+
+FORM partner 'Партнер'
+    OBJECTS c = Customer
+    OBJECTS p = Partner
+    PROPERTIES (p) NEW, EDIT, DELETE
+;
+
+NAVIGATOR {
+    masterData{
+        customerFolder{
+            NEW partner;
+        }   
+    }
+}
